@@ -2,7 +2,6 @@ import puppeteer from "puppeteer";
 import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
-// import chromium from "@sparticuz/chromium";
 
 const app = express();
 const PORT = 3000;
