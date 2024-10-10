@@ -1,61 +1,78 @@
-// import puppeteer from "puppeteer";
-import puppeteer from "puppeteer-core";
+import puppeteer from "puppeteer";
 import express from "express";
-const chromium = require("@sparticuz/chromium");
+import dotenv from "dotenv";
+dotenv.config();
+// import chromium from "@sparticuz/chromium";
 
 const app = express();
 const PORT = 3000;
-// const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function main(city: string) {
   const browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--single-process",
+      "--no-zygote",
+    ],
+    executablePath:
+      process.env.NODE_ENV === "production"
+        ? process.env.PUPPETEER_EXECUTABLE_PATH
+        : puppeteer.executablePath(),
   });
   const page = await browser.newPage();
 
   await page.goto(`https://www.google.com/search?q=weather ${city}`);
 
+  // Remove this if geolocation permission is not necessary
   const context = browser.defaultBrowserContext();
   await context.overridePermissions("https://www.google.com", ["geolocation"]);
 
   const buttons = await page.$$(".wob_df");
-  const weatheDetails = [];
+  const weatherDetails = [];
   const today = new Date();
   let addDay = 0;
+
   for (const button of buttons) {
     const text = await page.evaluate((el) => el.textContent, button);
-    const degree = await page.$eval("#wob_tm", (el) => el?.textContent);
-    const precipitation = await page.$eval("#wob_pp", (el) => el?.textContent);
-    const humidity = await page.$eval("#wob_hm", (el) => el?.textContent);
-    const wind = await page.$eval("#wob_ws", (el) => el?.textContent);
+    const degree = await page.$eval(
+      "#wob_tm",
+      (el) => el?.textContent || "N/A"
+    );
+    const precipitation = await page.$eval(
+      "#wob_pp",
+      (el) => el?.textContent || "N/A"
+    );
+    const humidity = await page.$eval(
+      "#wob_hm",
+      (el) => el?.textContent || "N/A"
+    );
+    const wind = await page.$eval("#wob_ws", (el) => el?.textContent || "N/A");
 
-    today.setDate(today.getDate() + addDay);
-    const weatheDetail = {
+    const date = new Date();
+    date.setDate(today.getDate() + addDay);
+    const weatherDetail = {
       degree,
       precipitation,
       humidity,
       wind,
-      date: today.toString(),
+      date: date.toString(),
     };
-    weatheDetails.push(weatheDetail);
-    console.log(text, " weather ", weatheDetail);
-    // await sleep(3000);
+
+    weatherDetails.push(weatherDetail);
+    console.log(text, "weather:", weatherDetail);
+
     const box = await button?.boundingBox();
     if (box) {
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     }
     addDay++;
   }
-  return weatheDetails;
-  // const box = await buttons[1]?.boundingBox();
-  // if (box) {
-  //   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-  // }
-}
 
-// main();
+  await browser.close(); // Close the browser
+
+  return weatherDetails;
+}
 
 app.get("/weather", async (req, res) => {
   const query = req.query;
@@ -65,6 +82,7 @@ app.get("/weather", async (req, res) => {
       const weather = await main(query.city as string);
       res.json({ success: true, weather });
     } catch (error) {
+      console.error(error);
       res.json({ success: false, error: "something wrong" });
     }
   } else {
@@ -73,5 +91,5 @@ app.get("/weather", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`running on ${PORT}`);
+  console.log(`Running on ${PORT}`);
 });
