@@ -1,12 +1,18 @@
-import puppeteer from "puppeteer";
-// import puppeteer from "puppeteer-core";
+// import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
 import express from "express";
+const chromium = require("@sparticuz/chromium");
 
 const app = express();
 const PORT = 3000;
 // const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function main(city: string) {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
+  });
   const page = await browser.newPage();
 
   await page.goto(`https://www.google.com/search?q=weather ${city}`);
