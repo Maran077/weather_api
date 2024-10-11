@@ -83,7 +83,7 @@ app.get("/weather", async (req, res) => {
       res.json({ success: true, weather });
     } catch (error) {
       console.error(error);
-      res.json({ success: false, error: "something wrong" });
+      res.json({ success: false, error: "something wrong", err: error });
     }
   } else {
     res.json({ success: false, error: "please give city name" });
