@@ -1,4 +1,5 @@
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
@@ -7,15 +8,12 @@ const app = express();
 const PORT = 3000;
 
 async function main(city: string) {
+  const executablePath = await chromium.executablePath();
   const browser = await puppeteer.launch({
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--single-process",
-      "--no-zygote",
-    ],
-    executablePath: puppeteer.executablePath(),
-    headless: false,
+    executablePath,
+    args: chromium.args,
+    headless: chromium.headless,
+    defaultViewport: chromium.defaultViewport,
   });
   const page = await browser.newPage();
 
